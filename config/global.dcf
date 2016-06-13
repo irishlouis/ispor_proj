@@ -1,0 +1,12 @@
+version: 0.6
+data_loading: FALSE
+cache_loading: TRUE
+recursive_loading: FALSE
+munging: FALSE
+logging: FALSE
+load_libraries: TRUE
+libraries: reshape2, plyr, dplyr, ggplot2, stringr, lubridate, caret, ggthemes, scales, rBayesianOptimization
+as_factors: TRUE
+data_tables: TRUE
+attach_internal_libraries: FALSE
+
