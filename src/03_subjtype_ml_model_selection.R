@@ -9,18 +9,18 @@ n_resamples <- 30
 seeds <- round(rep(runif(n_resamples, 1, 10000000)), 0)
 
 # generate models using 30 different seeds to split training / testing and store Kappa values
-resample.results <- do.call(rbind, 
+subjtype.resample.results <- do.call(rbind, 
                             lapply(seeds, function(s) {
-                              print(which(seeds ==s))
-                              return(check.model.perf(s, model.data))
+                                print(which(seeds ==s))
+                                return(subjtype.check.model.perf(s, model.data))
                               })
                             )
 
 # summary of kappa values for each model method for the 30 runs
-summary(resample.results)
+summary(subjtype.resample.results)
 
 # plot resultant Kappa values
-p4 <- ggplot(melt(resample.results, value.name = "kappa") %>% 
+p4 <- ggplot(melt(subjtype.resample.results, value.name = "kappa") %>% 
          mutate(Var2 = str_replace(Var2, ".Kappa", "")),
        aes(x=Var2, y=kappa)) + 
   geom_violin() +
@@ -38,6 +38,6 @@ p4 <- ggplot(melt(resample.results, value.name = "kappa") %>%
   scale_y_continuous(labels = percent)
 
 p4
-pdf("graphs/modelResampleKappa.pdf", compress = FALSE)
+pdf("graphs/subjtypeModelResampleKappa.pdf", compress = FALSE)
 p4
 dev.off()

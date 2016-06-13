@@ -1,4 +1,4 @@
-#' checkModelPerf
+#' subjtype.check.model.perf
 #' @description run list of models and return Kappa values, to run MC model validation
 #'
 #' @param seed - seed to split data on 
@@ -8,17 +8,15 @@
 #' @export
 #'
 #' @examples
-check.model.perf <- function(seed, model.data){
+subjtype.check.model.perf <- function(seed, model.data){
   set.seed(seed)
   # partition data for building model
-  s <- createDataPartition(model.data$device_id, p = 0.6, list = FALSE)
+  s <- createDataPartition(model.data$subj_type, p = 0.6, list = FALSE)
   training <- model.data[s][,':='(
-    device_id = as.factor(device_id),
-    steps = as.factor(steps),
+    device_id = NULL,
     epoch_id = NULL)]
   testing <- model.data[-s][,':='(
-    steps = as.factor(steps),
-    device_id = as.factor(device_id),
+    device_id = NULL,
     epoch_id = NULL)]
   
   # define model training control
@@ -31,7 +29,7 @@ check.model.perf <- function(seed, model.data){
   )
   
   # train list of models using control spec'd above
-  model_list <- caretList(device_id ~ ., 
+  model_list <- caretList(subj_type ~ ., 
                           data=training, 
                           trControl=my_control,
                           methodList=c('gbm','xgbTree', 'rf', 'svmRadial', 'C5.0'), 
@@ -39,5 +37,5 @@ check.model.perf <- function(seed, model.data){
   
   # look at validation results for each 
   return(lapply(model_list, 
-                function(x) confusionMatrix(predict(x, testing), testing$device_id)$overall[2]) %>% unlist)
+                function(x) confusionMatrix(predict(x, testing), testing$subj_type)$overall[2]) %>% unlist)
 }
