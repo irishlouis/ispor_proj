@@ -46,5 +46,5 @@ setkey(data, device_id, epoch_id)
 data <- data[epoch] 
 rm(epoch)
 
-# bin steps
-data[,steps := bin_steps(steps),]
+# cache
+cache("data")
