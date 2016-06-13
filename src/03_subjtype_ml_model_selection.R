@@ -1,4 +1,3 @@
-
 # create model.data, filtering out epochs with low steps
 model.data <- summary[steps != "0-2.5"]
 
@@ -12,12 +11,17 @@ seeds <- round(rep(runif(n_resamples, 1, 10000000)), 0)
 subjtype.resample.results <- do.call(rbind, 
                             lapply(seeds, function(s) {
                                 print(which(seeds ==s))
-                                return(subjtype.check.model.perf(s, model.data))
+                                return(subjtype.check.model.perf(s, 
+                                                                 model.data, 
+                                                                 models = c('nnet', 'gbm','xgbTree', 'rf', 
+                                                                            'svmRadial', 'C5.0')))
                               })
                             )
 
 # summary of kappa values for each model method for the 30 runs
 summary(subjtype.resample.results)
+# cache
+cache("subjtype.resample.results")
 
 # plot resultant Kappa values
 p4 <- ggplot(melt(subjtype.resample.results, value.name = "kappa") %>% 
