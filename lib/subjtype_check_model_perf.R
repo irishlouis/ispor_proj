@@ -8,7 +8,7 @@
 #' @export
 #'
 #' @examples
-subjtype.check.model.perf <- function(seed, model.data){
+subjtype.check.model.perf <- function(seed, model.data, models, run.list = TRUE, tuneGrid = NULL){
   set.seed(seed)
   # partition data for building model
   s <- createDataPartition(model.data$subj_type, p = 0.6, list = FALSE)
@@ -20,20 +20,35 @@ subjtype.check.model.perf <- function(seed, model.data){
     epoch_id = NULL)]
   
   # define model training control
-  my_control <- caret::trainControl(
+  control1 <- caret::trainControl(
     method='repeatedcv',
     number=5,
     savePredictions=TRUE,
     classProbs=TRUE,
     search = "random"
   )
+  control2 <- caret::trainControl(
+    method='repeatedcv',
+    number=5,
+    savePredictions=TRUE,
+    classProbs=TRUE
+  )
   
+  if(run.list){
   # train list of models using control spec'd above
-  model_list <- caretList(subj_type ~ ., 
-                          data=training, 
-                          trControl=my_control,
-                          methodList=c('gbm','xgbTree', 'rf', 'svmRadial', 'C5.0'), 
-                          tuneLength = 5)
+    model_list <- caretList(subj_type ~ ., 
+                            data=training, 
+                            trControl=control1,
+                            methodList= models, 
+                            tuneLength = 5)
+  } else {
+    model_list <- caretList(subj_type ~ ., 
+                            data=training, 
+                            trControl=control2,
+                            methodList= models, 
+                            tuneGrid = tuneGrid)
+    
+  }
   
   # look at validation results for each 
   return(lapply(model_list, 
