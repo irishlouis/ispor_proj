@@ -17,7 +17,11 @@ get.peak.summary <- function(v, k, freq) {
                               function(x) ifelse(x<length(v.smooth), 
                                                  switch.dir[x] != switch.dir[x+1], 
                                                  F))) / ((length(v.smooth)+k-1)/freq)
-  if(peaks.per.sec == 0) return(list(rep(F, 5)))
+  if(peaks.per.sec == 0) return(list(peaks.per.sec = 0, 
+                                     avg.period = 0, 
+                                     sd.period = 0,
+                                     avg.amp = 0,
+                                     sd.amp = 0))
   
   period <- rollapply(which(sapply(seq_along(v.smooth), 
                                    function(x) ifelse(x<length(v.smooth), 
