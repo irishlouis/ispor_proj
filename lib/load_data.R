@@ -17,7 +17,7 @@ load.data <- function(datafolder = NULL){
   epoch <- epoch[,':='(
     timestamp = ymd_hms(timestamp))][,
                                      .(timestamp, serialnumber, steps),][,
-                                                                         steps :=bin_steps(steps, 0, 20, 3),]
+                                                                         steps_bin :=bin_steps(steps, 0, 20, 3),]
   setkey(epoch, serialnumber, timestamp)
   
   # empty list to hold raw data
