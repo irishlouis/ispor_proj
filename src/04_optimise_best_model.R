@@ -1,7 +1,8 @@
 # optimise best model
 
 # create model.data, filtering out epochs with low steps
-model.data <- train.summary
+## drop steps - only want numeric
+model.data <- train.summary %>% select(-steps)
 
 set.seed(456456)
 s <- createDataPartition(model.data$subj_type, p = 0.6, list = FALSE)
@@ -28,13 +29,16 @@ init_model <- train(subj_type ~ .,
                     data = training, 
                     trControl = init_control,
                     metric = "Kappa",
-                    method = "svmRadial",
+                    method = "nnet",
                     tuneLength = 10)
-#The best random values are sigma = 1.956941 and C = 9.940983
+# The final values used for the model were size = 5 and decay = 0.006772878
+varImp(init_model)
+plot(varImp(init_model))
 
 # look at validation results 
 confusionMatrix(predict(init_model, testing), testing$subj_type)
 init_model
+cache("init_model")
 
 ###############################################
 #
@@ -44,25 +48,26 @@ init_model
 optimise_ctrl <- trainControl(method = "repeatedcv", repeats = 5)
 
 # function to opt model
-svm_fit_bayes <- function(C, sigma) {
+nnet.fit.bayes <- function(size, decay) {
+  size <- round(size, 0)
   ## Use the same model code but for a single (C, sigma) pair. 
   txt <- capture.output(
     mod <- train(subj_type ~ ., data = training,
-                 method = "svmRadial",
+                 method = "nnet",
                  metric = "Kappa",
                  trControl = optimise_ctrl,
-                 tuneGrid = data.frame(C = C, sigma = sigma))
+                 tuneGrid = data.frame(size = size, decay = decay))
   )
   list(Score = getTrainPerf(mod)[, "TrainKappa"], Pred = 0)
 }
 # set bounds for search
 bounds <- list(
-  C = c(C = 0, C = 200),
-  sigma = c(sigma = 0, sigma = 25))
+  size = c(size = 1, size = 15),
+  decay = c(decay = 0.0001, decay = .5))
 
 # search for optimum model parameters
 set.seed(8606)
-ba_search <- BayesianOptimization(FUN = svm_fit_bayes, 
+ba_search <- BayesianOptimization(FUN = nnet.fit.bayes, 
                                   bounds = bounds,
                                   init_points = 5, 
                                   n_iter = 50,
@@ -75,18 +80,27 @@ cache("ba_search")
 #' Round = 15	C = 123.7352	sigma = 0.7303	Value = 0.9896 
 
 set.seed(456798)
-final_svm <- train(subj_type ~ ., 
+final_model <- train(subj_type ~ ., 
                       data = training,
-                      method = "svmRadial",
-                      tuneGrid = data.frame(C = exp(ba_search$Best_Par["C"]),
-                                            sigma = exp(ba_search$Best_Par["sigma"])),
+                      method = "nnet",
+                      tuneGrid = data.frame(decay = ba_search$Best_Par["decay"],
+                                            size = round(ba_search$Best_Par["size"], 0)),
                       metric = "Kappa",
                       trControl = optimise_ctrl)
 
-confusionMatrix(predict(final_svm, testing), testing$subj_type)
+# compare results for initial and tuned model
+confusionMatrix(predict(final_model, testing), testing$subj_type)
 confusionMatrix(predict(init_model, testing), testing$subj_type)
 
 # no difference in performance 
-compare_models(final_svm, init_model)
+compare_models(final_model, init_model)
 
-cache("final_svm")
+# look at variable importance
+varImp(final_model)
+plot(varImp(final_model))
+
+# plot neural network
+plot.nnet(final_model)
+
+# chache
+cache("final_model")
