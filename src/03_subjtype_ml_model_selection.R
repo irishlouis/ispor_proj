@@ -1,7 +1,8 @@
 # create model.data, filtering out epochs with low steps
-model.data <- summary[steps != "0-2.5"]
+## drop steps - only want numeric
+model.data <- train.summary %>% select(-steps)
 
-# run models to select best performing
+# run models to select best performing model type on training data (/louis1)
 set.seed(98315)
 # set how many runs to do
 n_resamples <- 30
@@ -13,7 +14,7 @@ subjtype.resample.results <- do.call(rbind,
                                 print(which(seeds ==s))
                                 return(subjtype.check.model.perf(s, 
                                                                  model.data, 
-                                                                 models = c('nnet', 'gbm','xgbTree', 'rf', 
+                                                                 models = c('nnet', 'gbm', 'rf', 
                                                                             'svmRadial', 'C5.0')))
                               })
                             )
@@ -33,7 +34,7 @@ p4 <- ggplot(melt(subjtype.resample.results, value.name = "kappa") %>%
   theme_bw() +
   labs(title = "Kappa Results from Models - 30 Data Partitions",
        subtitle = "The evaluation results of models show some variation in performance depending on the data split.
-       In general models are showing strong predictive power.",
+In general models are showing strong predictive power.",
        caption = "Grey box represents IQR with Median\nViolin plot shows distribution",
        x="",
        y="") +
