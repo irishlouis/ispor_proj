@@ -139,6 +139,7 @@ plot.nnet<-function(mod.in,nid=T,all.out=T,all.in=T,bias=T,wts.only=F,rel.rsc=5,
     x.names<-mod.in$xNames
     y.names<-attr(terms(mod.in),'factor')
     y.names<-row.names(y.names)[!row.names(y.names) %in% x.names]
+    y.names<-y.names[1]
   }
   if(!'xNames' %in% names(mod.in) & 'nnet' %in% class(mod.in)){
     if(is.null(mod.in$call$formula)){
