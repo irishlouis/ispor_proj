@@ -95,11 +95,26 @@ confusionMatrix(predict(init_model_dev_id, testing), testing$device_id)
 compare_models(final_model_dev_id, init_model_dev_id)
 
 # look at variable importance
-varImp(final_model_dev_id)
-plot(varImp(final_model_dev_id))
+
+# varImp(init_model_dev_id)
+# pdf("graphs/varImpDevIdInitMdl.pdf", compress = F)
+# plot(varImp(init_model_dev_id))
+# dev.off()
+# 
+# varImp(final_model_dev_id)
+# pdf("graphs/varImpDevIdFinalMdl.pdf", compress = F)
+# plot(varImp(final_model_dev_id))
+# dev.off()
 
 # plot neural network
-plot.nnet(final_model_id)
+pdf("graphs/devIdInitMdl.pdf", compress = F, width = 12)
+plot.nnet(init_model_dev_id)
+dev.off()
+
+pdf("graphs/devIdFinalMdl.pdf", compress = F, width = 12)
+plot.nnet(final_model_dev_id)
+dev.off()
+
 
 # chache
-cache("final_model_id")
+cache("final_model_dev_id")

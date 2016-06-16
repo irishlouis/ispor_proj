@@ -96,11 +96,23 @@ confusionMatrix(predict(init_model, testing), testing$subj_type)
 compare_models(final_model, init_model)
 
 # look at variable importance
+varImp(init_model)
+pdf("graphs/varImpSubjtypeInitMdl.pdf", compress = F)
+plot(varImp(init_model))
+dev.off()
+
 varImp(final_model)
+pdf("graphs/varImpSubjtypeFinalMdl.pdf", compress = F)
 plot(varImp(final_model))
+dev.off()
 
 # plot neural network
-plot.nnet(final_model)
+pdf("graphs/subjtypeInitMdl.pdf", compress = F, width = 12)
+plot.nnet(init_model)
+dev.off()
 
+pdf("graphs/subjtypeFinalMdl.pdf", compress = F, width = 12)
+plot.nnet(final_model)
+dev.off()
 # chache
 cache("final_model")
