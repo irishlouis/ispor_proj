@@ -4,7 +4,8 @@
 ## drop steps - only want numeric
 model.data <- train.summary %>% 
   select(-steps, -subj_type) %>%
-  mutate(subj_id = ifelse(device_id == "TAS1E31150028", "louis", "not_louis"))
+  mutate(subj_id = ifelse(device_id == "TAS1E31150028", "louis", "not_louis")) %>%
+  data.table
 
 set.seed(456456)
 s <- createDataPartition(model.data$subj_id, p = 0.6, list = FALSE)
