@@ -26,8 +26,9 @@ cache("subjtype.resample.results")
 
 # plot resultant Kappa values
 p4 <- ggplot(melt(subjtype.resample.results, value.name = "kappa") %>% 
-         mutate(Var2 = str_replace(Var2, ".Kappa", "")),
-       aes(x=Var2, y=kappa)) + 
+         mutate(X2 = str_replace(X2, ".Kappa", ""),
+                kappa = value),
+       aes(x=X2, y=kappa)) + 
   geom_violin() +
   geom_boxplot(fill = "grey", alpha = 0.25) + 
   geom_point(alpha = 0.25) +
