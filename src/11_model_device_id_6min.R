@@ -35,84 +35,11 @@ plot(varImp(init_model_dev_id_first_6min))
 # look at validation results 
 confusionMatrix(predict(init_model_dev_id_first_6min, testing), testing$device_id)
 init_model_dev_id_first_6min
-cache("init_model_dev_id")
+cache("init_model_dev_id_first_6min")
 
-###############################################
-#
-# can we improve model performance with tuning paramters
+# beyond test data
+## same subjects different day
+table(predict(init_model_dev_id_first_6min, eval1.summary), eval1.summary$device_id)
+## different subjects different day
+table(predict(init_model_dev_id_first_6min, eval2.summary), eval2.summary$device_id)
 
-# new simpler ctrl func
-optimise_ctrl <- trainControl(method = "repeatedcv", repeats = 5)
-
-# function to opt model
-nnet.fit.bayes <- function(size, decay) {
-  size <- round(size, 0)
-  ## Use the same model code but for a single (C, sigma) pair. 
-  txt <- capture.output(
-    mod <- train(device_id ~ ., data = training,
-                 method = "nnet",
-                 metric = "Kappa",
-                 trControl = optimise_ctrl,
-                 tuneGrid = data.frame(size = size, decay = decay))
-  )
-  list(Score = getTrainPerf(mod)[, "TrainKappa"], Pred = 0)
-}
-# set bounds for search
-bounds <- list(
-  size = c(size = 1, size = 15),
-  decay = c(decay = 0.0001, decay = .5))
-
-# search for optimum model parameters
-set.seed(8606)
-ba_search_dev_id <- BayesianOptimization(FUN = nnet.fit.bayes, 
-                                  bounds = bounds,
-                                  init_points = 5, 
-                                  n_iter = 50,
-                                  acq = "ucb", 
-                                  kappa = 1, 
-                                  eps = 0.0,
-                                  verbose = TRUE)
-cache("ba_search_dev_id")
-#' Best Parameters Found: 
-#' Round = 15	C = 123.7352	sigma = 0.7303	Value = 0.9896 
-
-set.seed(748159)
-final_model_dev_id <- train(device_id ~ ., 
-                     data = training,
-                     method = "nnet",
-                     tuneGrid = data.frame(decay = ba_search_dev_id$Best_Par["decay"],
-                                           size = round(ba_search_dev_id$Best_Par["size"], 0)),
-                     metric = "Kappa",
-                     trControl = optimise_ctrl)
-
-# compare results for initial and tuned model
-confusionMatrix(predict(final_model_dev_id, testing), testing$device_id)
-confusionMatrix(predict(init_model_dev_id, testing), testing$device_id)
-
-# no difference in performance 
-compare_models(final_model_dev_id, init_model_dev_id)
-
-# look at variable importance
-
-# varImp(init_model_dev_id)
-# pdf("graphs/varImpDevIdInitMdl.pdf", compress = F)
-# plot(varImp(init_model_dev_id))
-# dev.off()
-# 
-# varImp(final_model_dev_id)
-# pdf("graphs/varImpDevIdFinalMdl.pdf", compress = F)
-# plot(varImp(final_model_dev_id))
-# dev.off()
-
-# plot neural network
-pdf("graphs/devIdInitMdl.pdf", compress = F, width = 12)
-plot.nnet(init_model_dev_id)
-dev.off()
-
-pdf("graphs/devIdFinalMdl.pdf", compress = F, width = 12)
-plot.nnet(final_model_dev_id)
-dev.off()
-
-
-# chache
-cache("final_model_dev_id")
