@@ -1,0 +1,209 @@
+---
+title: "Report"
+author: "Louis Smith"
+date: "25 October 2016"
+output: html_document
+---
+```{r, echo=FALSE, warning=FALSE, results='hide', message=FALSE}
+# load project and cached data, don't show in document
+require(ProjectTemplate)
+load.project()
+```
+
+## Individual Actigraphy Pattern Recognition
+### Introduction
+
+### Data Collection
+
+### Methodology
+
+### Data Exploration
+#### Potential for Fraud?
+In all 3 datasets the number of steps returned by the devices worn by the dogs was a plausible figure.
+```{r}
+# train / test data louis1
+train.summary[ ,.(n.steps = sum(steps)), .(device_id, subj_type)]
+# eval1 data louis2
+eval1.summary[ ,.(n.steps = sum(steps)), .(device_id, subj_type)]
+# eval2 data marie1
+eval2.summary[ ,.(n.steps = sum(steps)), .(device_id, subj_type)]
+```
+
+#### Inter-Subject Variability
+##### Epoch data
+Looking at the steps / 5 second epoch, there appears to be be some difference. As epoch duration increases, this variations is smoothed out.
+```{r}
+print.epoch(train.summary)
+print.epoch(eval1.summary)
+print.epoch(eval2.summary)
+```
+
+##### Raw data
+```{r}
+p2 <- train.data[,subj_type := ifelse(device_id %in% c("TAS1E31150003", "TAS1E31150028"), "human", "dog") , ][
+  ,title := paste(device_id, "-", subj_type ),][datetime >= ymd_hms("2016-05-04 18:33:30") & datetime < ymd_hms("2016-05-04 18:33:35")& device_id != "TAS1E31150005"] %>%
+  ggplot(aes(datetime, vec.mag, group = device_id)) + 
+  geom_line() +
+  facet_wrap(~title, ncol = 1) + 
+  labs(title = "Example of raw data for a single 5 second epoch starting at 18:33:30",
+       subtitle = "The algorithm found an equal number of steps for each device.
+However it is apparent that there are significant differences in the raw data profiles.",
+       caption = "NOTE: devices times are not 100% synchronous +/- 1s",
+       y = "Accelerometer Vector Magnitude",
+       x = "Time (s)") + 
+  theme_bw() +
+  scale_colour_discrete(name = "Steps in epoch") + 
+  theme(legend.position = "bottom",
+        legend.key = element_rect(colour = "white"),
+        panel.grid.minor = element_blank())
+p2
+```
+
+### Data Preparation
+
+```{r}
+train.summary %>% head
+```
+
+### Model 1 - Classify Human vs Dog
+#### Model 1 Selection
+Five classical models types considered, neural network, gradient boosted machine, random forest, support vector machine & C5.0 decision tree. Model performance was considering in terms of Kappa statistic.
+
+30 verisons of each model type were run on different data splits.
+```{r}
+summary(subjtype.resample.results)
+p4 <- ggplot(melt(subjtype.resample.results, value.name = "kappa") %>% 
+         mutate(X2 = str_replace(X2, ".Kappa", ""),
+                kappa = value),
+       aes(x=X2, y=kappa)) + 
+  geom_violin() +
+  geom_boxplot(fill = "grey", alpha = 0.25) + 
+  geom_point(alpha = 0.25) +
+  theme_bw() +
+  labs(title = "Kappa Results from Models - 30 Data Partitions",
+       subtitle = "The evaluation results of models show some variation in performance depending on the data split.
+In general models are showing strong predictive power.",
+       caption = "Grey box represents IQR with Median\nViolin plot shows distribution",
+       x="",
+       y="") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
+        panel.grid.major.x = element_blank()) +
+  scale_y_continuous(labels = percent)
+
+p4
+```
+Neural network model wins
+#### Model 1 Optimisation
+
+```{r}
+model.data <- train.summary %>% select(-steps)
+
+set.seed(456456)
+s <- createDataPartition(model.data$subj_type, p = 0.6, list = FALSE)
+testing <- model.data[-s][,':='(
+  device_id = NULL,
+  epoch_id = NULL)]
+
+varImp(init_model)
+plot(varImp(init_model))
+
+```
+
+look at model
+```{r, fig.height=8, fig.width=8}
+plot.nnet(init_model)
+```
+
+#### Model 1 Evaluation on Test Data
+```{r}
+# look at validation results 
+confusionMatrix(predict(init_model, testing), testing$subj_type)
+```
+
+#### Model 1 Evaluation Beyond Test Data
+Looking if model holds for same subjects, data recorded at a different date.
+```{r}
+confusionMatrix(predict(init_model, eval1.summary), eval1.summary$subj_type)
+```
+
+On different subjects
+```{r}
+confusionMatrix(predict(init_model, eval2.summary), eval2.summary$subj_type)
+```
+
+
+### Model 2 - Classify Individual Human Subject
+#### Model 2 Optimisation
+```{r}
+model.data <- train.summary %>% 
+  select(-steps, -subj_type) %>%
+  mutate(subj_id = ifelse(device_id == "TAS1E31150028", "louis", "not_louis")) %>%
+  data.table
+
+set.seed(456456)
+s <- createDataPartition(model.data$subj_id, p = 0.6, list = FALSE)
+training <- model.data[s][,':='(
+  device_id = NULL,
+  epoch_id = NULL)]
+testing <- model.data[-s][,':='(
+  device_id = NULL,
+  epoch_id = NULL)]
+
+varImp(init_model)
+plot(varImp(init_model))
+
+init_model_id
+```
+
+#### Model 2 Evaluation on Test Data
+```{r}
+# look at validation results 
+confusionMatrix(predict(init_model_id, testing), testing$subj_id)
+```
+
+#### Model 2 Evaluation Beyond Test Data
+```{r}
+table(predict(final_model_id, eval1.summary), eval1.summary$device_id )
+confusionMatrix(predict(init_model_id, eval1.summary), ifelse(eval1.summary$device_id == "TAS1E35150289", "louis", "not_louis"))
+
+# test model on different subjects
+table(predict(final_model_id, eval2.summary), eval2.summary$device_id)
+l <- as.factor(c("louis", rep("not_louis", nrow(eval2.summary))))
+confusionMatrix(predict(init_model_id, eval2.summary), l[-1] )
+```
+
+### Model 3 - Classify Specfic Human Subject
+#### Model 3 Optimisation
+```{r}
+model.data <- train.summary %>% 
+  select(-steps, -subj_type) 
+
+set.seed(951623)
+s <- createDataPartition(model.data$device_id, p = 0.6, list = FALSE)
+training <- model.data[s][,':='(
+  epoch_id = NULL)]
+testing <- model.data[-s][,':='(
+  epoch_id = NULL)]
+
+varImp(init_model_dev_id)
+plot(varImp(init_model_dev_id))
+```
+#### Model 3 Evaluation on Test Data
+```{r}
+confusionMatrix(predict(init_model_dev_id, testing), testing$device_id)
+```
+
+#### Model 3 Evaluation Beyond Test Data
+```{r}
+# test model on same subjects different data
+table(predict(final_model_dev_id, eval1.summary), eval1.summary$device_id )
+l <- ifelse(eval1.summary$device_id == "TAS1E31150030", 
+            "TAS1E31150003",
+            ifelse(eval1.summary$device_id == "TAS1E35150289",
+                   "TAS1E31150028",
+                   "TAS1E31150059"))
+confusionMatrix(predict(init_model_dev_id, eval1.summary), l)
+
+# test model on different subjects
+table(predict(init_model_dev_id, eval2.summary), eval2.summary$device_id)
+```
