@@ -1,5 +1,3 @@
-# optimise best model
-
 # create model.data, filtering out epochs with low steps
 ## drop steps - only want numeric
 model.data <- train.summary %>% 
@@ -42,4 +40,5 @@ cache("init_model_dev_id_first_6min")
 table(predict(init_model_dev_id_first_6min, eval1.summary), eval1.summary$device_id)
 ## different subjects different day
 table(predict(init_model_dev_id_first_6min, eval2.summary), eval2.summary$device_id)
+
 
